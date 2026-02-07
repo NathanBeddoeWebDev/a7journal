@@ -1,2 +1,9 @@
+packages:
+  - .
+
 ignoredBuiltDependencies:
   - better-sqlite3
+
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
