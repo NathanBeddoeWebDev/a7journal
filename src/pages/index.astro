@@ -1,17 +1,111 @@
 ---
-
+import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<BaseLayout title="a7journal">
+    <div class="desk">
+        <div class="desk-mark sr-only">
+            <span class="brand">a7journal</span>
+        </div>
+        <section class="journal" aria-label="A7 notebook page">
+            <div class="spine" aria-hidden="true"></div>
+            <form class="entry-form" method="POST" action="/entries">
+                <header class="page-header">
+                    <span class="stamp" aria-hidden="true">A7</span>
+                </header>
+                <div class="page" style="--lines: 16;">
+                    <textarea
+                        id="entry"
+                        name="entry"
+                        data-lines="16"
+                        aria-label="Journal entry"
+                        spellcheck="false"
+                        placeholder="Begin where the page begins..."></textarea>
+                </div>
+                <div class="journal-actions">
+                    <button class="save-btn" type="submit">Save entry</button>
+                    <a class="archive-link" href="/entries">Archive</a>
+                </div>
+                <input type="hidden" id="sessionId" name="sessionId" />
+            </form>
+        </section>
+    </div>
+
+    <script>
+        const textarea = document.querySelector<HTMLTextAreaElement>("#entry");
+        const form = document.querySelector<HTMLFormElement>(".entry-form");
+        const sessionInput =
+            document.querySelector<HTMLInputElement>("#sessionId");
+        const maxLines = Number.parseInt(textarea.dataset.lines, 10);
+        let lastValue = "";
+
+        const generateSessionId = () =>
+            window.crypto?.randomUUID?.() ??
+            `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+        const ensureSession = () => {
+            const key = "a7journal_session";
+            let sessionId = window.localStorage.getItem(key);
+
+            if (!sessionId) {
+                sessionId = generateSessionId();
+                window.localStorage.setItem(key, sessionId);
+            }
+
+            sessionInput.value = sessionId;
+            document.cookie = `a7_session=${sessionId}; Path=/; Max-Age=31536000; SameSite=Lax`;
+        };
+
+        const enforceLimit = () => {
+            const style = window.getComputedStyle(textarea);
+            const lineHeight = Number.parseFloat(style.lineHeight);
+            const paddingY =
+                Number.parseFloat(style.paddingTop) +
+                Number.parseFloat(style.paddingBottom);
+            const maxHeight = lineHeight * maxLines + paddingY;
+
+            if (textarea.scrollHeight > maxHeight + 1) {
+                textarea.value = lastValue;
+            } else {
+                lastValue = textarea.value;
+            }
+        };
+
+        ensureSession();
+        enforceLimit();
+
+        textarea.addEventListener("input", enforceLimit);
+        textarea.addEventListener("keydown", (event) => {
+            const modifier = event.metaKey || event.ctrlKey;
+
+            if (!modifier) {
+                return;
+            }
+
+            if (event.key === "Enter") {
+                event.preventDefault();
+                if (form?.requestSubmit) {
+                    form.requestSubmit();
+                } else if (form) {
+                    form.submit();
+                }
+            }
+
+            if (event.key === "Backspace" || event.key === "Delete") {
+                event.preventDefault();
+                const shouldClear = window.confirm(
+                    "Trash this page? This will clear the current entry."
+                );
+
+                if (!shouldClear) {
+                    return;
+                }
+
+                textarea.value = "";
+                lastValue = "";
+                enforceLimit();
+            }
+        });
+        window.addEventListener("resize", enforceLimit);
+    </script>
+</BaseLayout>

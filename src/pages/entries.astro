@@ -1,0 +1,74 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { createEntry, listEntries } from "../lib/db.js";
+
+export const prerender = false;
+
+if (Astro.request.method === "POST") {
+    const form = await Astro.request.formData();
+    const sessionId = String(form.get("sessionId") ?? "").trim();
+    const body = String(form.get("entry") ?? "").trim();
+
+    if (sessionId && body) {
+        createEntry(sessionId, body);
+        Astro.cookies.set("a7_session", sessionId, {
+            path: "/",
+            sameSite: "lax",
+            maxAge: 60 * 60 * 24 * 365,
+        });
+    }
+
+    return Astro.redirect("/entries");
+}
+
+const sessionId = Astro.cookies.get("a7_session")?.value ?? "";
+const entries = sessionId ? listEntries(sessionId) : [];
+
+const formatDate = (value) =>
+    new Intl.DateTimeFormat("en-GB", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    }).format(new Date(value));
+
+const firstLine = (value) => value.split(/\r?\n/)[0] ?? "";
+---
+
+<BaseLayout title="a7journal - Archive">
+    <div class="desk desk--archive">
+        <div class="desk-mark">
+            <span class="brand">Archive</span>
+            <span class="tagline">Saved pages for this session.</span>
+        </div>
+        <section class="archive" aria-label="Saved entries">
+            <header class="archive-header">
+                <h1>Past pages</h1>
+                <a class="back-link" href="/">Back to writing</a>
+            </header>
+            {entries.length ? (
+                <div class="entry-list">
+                    {entries.map((entry) => (
+                        <a
+                            class="entry-card entry-card--link"
+                            href={`/entries/${entry.id}`}
+                            aria-label="View saved entry">
+                            <header>
+                                <span class="entry-date">
+                                    {formatDate(entry.created_at)}
+                                </span>
+                            </header>
+                            <p>{firstLine(entry.body)}</p>
+                        </a>
+                    ))}
+                </div>
+            ) : (
+                <p class="empty-state">
+                    No saved pages yet. Write something and return here.
+                </p>
+            )}
+        </section>
+    </div>
+</BaseLayout>

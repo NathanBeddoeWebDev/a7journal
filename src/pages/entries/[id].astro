@@ -1,0 +1,90 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getEntry, getEntryNeighbors } from "../../lib/db.js";
+
+export const prerender = false;
+
+const sessionId = Astro.cookies.get("a7_session")?.value ?? "";
+const entryId = Number.parseInt(Astro.params.id ?? "", 10);
+const entry =
+    sessionId && Number.isFinite(entryId)
+        ? getEntry(sessionId, entryId)
+        : null;
+const neighbors = entry ? getEntryNeighbors(sessionId, entryId) : null;
+
+const formatDate = (value) =>
+    new Intl.DateTimeFormat("en-GB", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    }).format(new Date(value));
+---
+
+<BaseLayout title="a7journal - Entry">
+    <div class="desk desk--archive">
+        <div class="desk-mark">
+            <span class="brand">Entry</span>
+            <span class="tagline">A single saved page.</span>
+        </div>
+        <section class="archive" aria-label="Saved entry">
+            <header class="archive-header">
+                <h1>Saved page</h1>
+                <a class="back-link" href="/entries">Back to archive</a>
+            </header>
+            {entry ? (
+                <div class="entry-detail">
+                    <article class="entry-card entry-card--detail">
+                        <header>
+                            <span class="entry-date">
+                                {formatDate(entry.created_at)}
+                            </span>
+                        </header>
+                        <p>{entry.body}</p>
+                    </article>
+                    <nav class="entry-nav" aria-label="Entry navigation">
+                        {neighbors?.prevId ? (
+                            <a
+                                class="nav-link nav-link--prev"
+                                href={`/entries/${neighbors.prevId}`}>
+                                Previous entry
+                            </a>
+                        ) : (
+                            <span class="nav-link is-disabled">Previous entry</span>
+                        )}
+                        {neighbors?.nextId ? (
+                            <a
+                                class="nav-link nav-link--next"
+                                href={`/entries/${neighbors.nextId}`}>
+                                Next entry
+                            </a>
+                        ) : (
+                            <span class="nav-link is-disabled">Next entry</span>
+                        )}
+                    </nav>
+                </div>
+            ) : (
+                <p class="empty-state">
+                    Entry not found for this session.
+                </p>
+            )}
+        </section>
+    </div>
+
+    <script>
+        const prevLink = document.querySelector(".nav-link--prev");
+        const nextLink = document.querySelector(".nav-link--next");
+
+        window.addEventListener("keydown", (event) => {
+            if (event.key === "ArrowLeft" && prevLink) {
+                window.location.href = prevLink.getAttribute("href");
+            }
+
+            if (event.key === "ArrowRight" && nextLink) {
+                window.location.href = nextLink.getAttribute("href");
+            }
+        });
+    </script>
+</BaseLayout>
