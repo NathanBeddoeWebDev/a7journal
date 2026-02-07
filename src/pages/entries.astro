@@ -53,7 +53,7 @@ const firstLine = (value) => value.split(/\r?\n/)[0] ?? "";
                     {entries.map((entry) => (
                         <a
                             class="entry-card entry-card--link"
-                            href={`/entries/${entry.id}`}
+                            href={`/entries/${entry.public_id}`}
                             aria-label="View saved entry">
                             <header>
                                 <span class="entry-date">

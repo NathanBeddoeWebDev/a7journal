@@ -5,9 +5,9 @@ import { getEntry, getEntryNeighbors } from "../../lib/db.js";
 export const prerender = false;
 
 const sessionId = Astro.cookies.get("a7_session")?.value ?? "";
-const entryId = Number.parseInt(Astro.params.id ?? "", 10);
+const entryId = String(Astro.params.id ?? "").trim();
 const entry =
-    sessionId && Number.isFinite(entryId)
+    sessionId && entryId
         ? getEntry(sessionId, entryId)
         : null;
 const neighbors = entry ? getEntryNeighbors(sessionId, entryId) : null;
@@ -45,19 +45,19 @@ const formatDate = (value) =>
                         <p>{entry.body}</p>
                     </article>
                     <nav class="entry-nav" aria-label="Entry navigation">
-                        {neighbors?.prevId ? (
+                        {neighbors?.prevPublicId ? (
                             <a
                                 class="nav-link nav-link--prev"
-                                href={`/entries/${neighbors.prevId}`}>
+                                href={`/entries/${neighbors.prevPublicId}`}>
                                 Previous entry
                             </a>
                         ) : (
                             <span class="nav-link is-disabled">Previous entry</span>
                         )}
-                        {neighbors?.nextId ? (
+                        {neighbors?.nextPublicId ? (
                             <a
                                 class="nav-link nav-link--next"
-                                href={`/entries/${neighbors.nextId}`}>
+                                href={`/entries/${neighbors.nextPublicId}`}>
                                 Next entry
                             </a>
                         ) : (
