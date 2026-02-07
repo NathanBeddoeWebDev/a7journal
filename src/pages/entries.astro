@@ -14,7 +14,7 @@ if (Astro.request.method === "POST") {
         Astro.cookies.set("a7_session", sessionId, {
             path: "/",
             sameSite: "lax",
-            maxAge: 60 * 60 * 24 * 365,
+            maxAge: 60 * 60 * 24 * 10000,
         });
     }
 
@@ -48,27 +48,30 @@ const firstLine = (value) => value.split(/\r?\n/)[0] ?? "";
                 <h1>Past pages</h1>
                 <a class="back-link" href="/">Back to writing</a>
             </header>
-            {entries.length ? (
-                <div class="entry-list">
-                    {entries.map((entry) => (
-                        <a
-                            class="entry-card entry-card--link"
-                            href={`/entries/${entry.public_id}`}
-                            aria-label="View saved entry">
-                            <header>
-                                <span class="entry-date">
-                                    {formatDate(entry.created_at)}
-                                </span>
-                            </header>
-                            <p>{firstLine(entry.body)}</p>
-                        </a>
-                    ))}
-                </div>
-            ) : (
-                <p class="empty-state">
-                    No saved pages yet. Write something and return here.
-                </p>
-            )}
+            {
+                entries.length ? (
+                    <div class="entry-list">
+                        {entries.map((entry) => (
+                            <a
+                                class="entry-card entry-card--link"
+                                href={`/entries/${entry.public_id}`}
+                                aria-label="View saved entry"
+                            >
+                                <header>
+                                    <span class="entry-date">
+                                        {formatDate(entry.created_at)}
+                                    </span>
+                                </header>
+                                <p>{firstLine(entry.body)}</p>
+                            </a>
+                        ))}
+                    </div>
+                ) : (
+                    <p class="empty-state">
+                        No saved pages yet. Write something and return here.
+                    </p>
+                )
+            }
         </section>
     </div>
 </BaseLayout>
