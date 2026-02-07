@@ -1,0 +1,41 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+export const prerender = false;
+---
+
+<BaseLayout title="a7journal - Sign In">
+    <div class="desk">
+        <div class="desk-mark">
+            <span class="brand">a7journal</span>
+            <span class="tagline">Completing sign in...</span>
+        </div>
+        <section class="auth-complete" aria-live="polite">
+            <p id="auth-status">Completing sign in...</p>
+        </section>
+    </div>
+
+    <script type="module">
+        import { initSession, setAccountCookie } from "../../lib/auth.js";
+
+        const status = document.querySelector("#auth-status");
+
+        const complete = async () => {
+            try {
+                const session = await initSession();
+                if (!session?.did) {
+                    throw new Error("No session found");
+                }
+                setAccountCookie(session.did);
+                window.location.href = "/";
+            } catch (error) {
+                if (status) {
+                    status.textContent =
+                        "Sign in failed. Please try again from the home page.";
+                }
+            }
+        };
+
+        complete();
+    </script>
+</BaseLayout>

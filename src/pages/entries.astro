@@ -1,28 +1,39 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { createEntry, listEntries } from "../lib/db.js";
+import { createEntry, listEntries, migrateEntries } from "../lib/db.js";
 
 export const prerender = false;
 
+const accountDid = Astro.cookies.get("a7_account")?.value ?? "";
+const legacySessionId = Astro.cookies.get("a7_session")?.value ?? "";
+
+if (accountDid && legacySessionId) {
+    migrateEntries(legacySessionId, accountDid);
+    Astro.cookies.delete("a7_session", { path: "/" });
+}
+
 if (Astro.request.method === "POST") {
     const form = await Astro.request.formData();
-    const sessionId = String(form.get("sessionId") ?? "").trim();
+    const formSessionId = String(form.get("sessionId") ?? "").trim();
     const body = String(form.get("entry") ?? "").trim();
+    const ownerId = accountDid || formSessionId;
 
-    if (sessionId && body) {
-        createEntry(sessionId, body);
-        Astro.cookies.set("a7_session", sessionId, {
-            path: "/",
-            sameSite: "lax",
-            maxAge: 60 * 60 * 24 * 10000,
-        });
+    if (ownerId && body) {
+        createEntry(ownerId, body);
+        if (!accountDid && ownerId) {
+            Astro.cookies.set("a7_session", ownerId, {
+                path: "/",
+                sameSite: "lax",
+                maxAge: 60 * 60 * 24 * 10000,
+            });
+        }
     }
 
     return Astro.redirect("/entries");
 }
 
-const sessionId = Astro.cookies.get("a7_session")?.value ?? "";
-const entries = sessionId ? listEntries(sessionId) : [];
+const ownerId = accountDid || legacySessionId;
+const entries = ownerId ? listEntries(ownerId) : [];
 
 const formatDate = (value) =>
     new Intl.DateTimeFormat("en-GB", {
@@ -41,7 +52,7 @@ const firstLine = (value) => value.split(/\r?\n/)[0] ?? "";
     <div class="desk desk--archive">
         <div class="desk-mark">
             <span class="brand">Archive</span>
-            <span class="tagline">Saved pages for this session.</span>
+            <span class="tagline">Saved pages for this journal.</span>
         </div>
         <section class="archive" aria-label="Saved entries">
             <header class="archive-header">

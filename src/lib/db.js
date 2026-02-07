@@ -73,29 +73,29 @@ const backfillPublicIds = () => {
 ensurePublicIdColumn();
 backfillPublicIds();
 
-export const createEntry = (sessionId, body) => {
+export const createEntry = (ownerId, body) => {
   const statement = db.prepare(
     "INSERT INTO entries (session_id, public_id, body, created_at) VALUES (?, ?, ?, ?)",
   );
-  statement.run(sessionId, generatePublicId(), body, new Date().toISOString());
+  statement.run(ownerId, generatePublicId(), body, new Date().toISOString());
 };
 
-export const listEntries = (sessionId) => {
+export const listEntries = (ownerId) => {
   const statement = db.prepare(
     "SELECT public_id, body, created_at FROM entries WHERE session_id = ? ORDER BY created_at DESC, id DESC",
   );
-  return statement.all(sessionId);
+  return statement.all(ownerId);
 };
 
-export const getEntry = (sessionId, publicId) => {
+export const getEntry = (ownerId, publicId) => {
   const statement = db.prepare(
     "SELECT id, public_id, body, created_at FROM entries WHERE session_id = ? AND public_id = ?",
   );
-  return statement.get(sessionId, publicId);
+  return statement.get(ownerId, publicId);
 };
 
-export const getEntryNeighbors = (sessionId, publicId) => {
-  const current = getEntry(sessionId, publicId);
+export const getEntryNeighbors = (ownerId, publicId) => {
+  const current = getEntry(ownerId, publicId);
 
   if (!current) {
     return { prevPublicId: null, nextPublicId: null };
@@ -109,13 +109,13 @@ export const getEntryNeighbors = (sessionId, publicId) => {
   );
 
   const next = nextStatement.get(
-    sessionId,
+    ownerId,
     current.created_at,
     current.created_at,
     current.id,
   );
   const prev = prevStatement.get(
-    sessionId,
+    ownerId,
     current.created_at,
     current.created_at,
     current.id,
@@ -125,4 +125,16 @@ export const getEntryNeighbors = (sessionId, publicId) => {
     prevPublicId: prev?.public_id ?? null,
     nextPublicId: next?.public_id ?? null,
   };
+};
+
+export const migrateEntries = (fromSessionId, toOwnerId) => {
+  if (!fromSessionId || !toOwnerId || fromSessionId === toOwnerId) {
+    return 0;
+  }
+
+  const statement = db.prepare(
+    "UPDATE entries SET session_id = ? WHERE session_id = ?",
+  );
+  const result = statement.run(toOwnerId, fromSessionId);
+  return result.changes ?? 0;
 };

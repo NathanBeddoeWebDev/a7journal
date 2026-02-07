@@ -1,5 +1,16 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { migrateEntries } from "../lib/db.js";
+
+export const prerender = false;
+
+const accountDid = Astro.cookies.get("a7_account")?.value ?? "";
+const legacySessionId = Astro.cookies.get("a7_session")?.value ?? "";
+
+if (accountDid && legacySessionId) {
+    migrateEntries(legacySessionId, accountDid);
+    Astro.cookies.delete("a7_session", { path: "/" });
+}
 ---
 
 <BaseLayout title="a7journal">
@@ -26,16 +37,68 @@ import BaseLayout from "../layouts/BaseLayout.astro";
                     <button class="save-btn" type="submit">Save entry</button>
                     <a class="archive-link" href="/entries">Archive</a>
                 </div>
+                <div class="auth-panel">
+                    {
+                        accountDid ? (
+                            <div class="auth-status">
+                                <div>
+                                    <div class="auth-label">Signed in</div>
+                                    <div class="auth-meta">Connected to Bluesky.</div>
+                                </div>
+                                <button
+                                    class="auth-btn auth-btn--ghost"
+                                    type="button"
+                                    data-auth-signout>
+                                    Sign out
+                                </button>
+                            </div>
+                        ) : (
+                            <div class="auth-form" role="group" aria-label="Sign in">
+                                <label class="auth-label" for="bskyHandle">
+                                    Bluesky handle
+                                </label>
+                                <div class="auth-row">
+                                    <input
+                                        id="bskyHandle"
+                                        class="auth-input"
+                                        type="text"
+                                        name="handle"
+                                        placeholder="handle.bsky.social"
+                                        autocomplete="off"
+                                        autocapitalize="off"
+                                        spellcheck="false" />
+                                    <button
+                                        class="auth-btn"
+                                        type="button"
+                                        data-auth-signin>
+                                        Sign in
+                                    </button>
+                                </div>
+                                <p class="auth-error" role="alert"></p>
+                            </div>
+                        )
+                    }
+                </div>
                 <input type="hidden" id="sessionId" name="sessionId" />
             </form>
         </section>
     </div>
 
-    <script>
+    <script type="module">
+        import { signIn, logout, getAccountCookie } from "../lib/auth.js";
+
         const textarea = document.querySelector<HTMLTextAreaElement>("#entry");
         const form = document.querySelector<HTMLFormElement>(".entry-form");
         const sessionInput =
             document.querySelector<HTMLInputElement>("#sessionId");
+        const authForm = document.querySelector<HTMLElement>(".auth-form");
+        const authError = document.querySelector<HTMLElement>(".auth-error");
+        const signOutButton = document.querySelector<HTMLButtonElement>(
+            "[data-auth-signout]",
+        );
+        const signInButton = document.querySelector<HTMLButtonElement>(
+            "[data-auth-signin]",
+        );
         const maxLines = Number.parseInt(textarea.dataset.lines, 10);
         let lastValue = "";
 
@@ -56,6 +119,15 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             document.cookie = `a7_session=${sessionId}; Path=/; Max-Age=31536000; SameSite=Lax`;
         };
 
+        const ensureOwnerId = () => {
+            const accountDid = getAccountCookie();
+            if (accountDid) {
+                sessionInput.value = accountDid;
+                return;
+            }
+            ensureSession();
+        };
+
         const enforceLimit = () => {
             const style = window.getComputedStyle(textarea);
             const lineHeight = Number.parseFloat(style.lineHeight);
@@ -71,7 +143,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             }
         };
 
-        ensureSession();
+        ensureOwnerId();
         enforceLimit();
 
         textarea.addEventListener("input", enforceLimit);
@@ -107,5 +179,63 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             }
         });
         window.addEventListener("resize", enforceLimit);
+
+        const attemptSignIn = async () => {
+            if (!authForm) {
+                return;
+            }
+            if (authError) {
+                authError.textContent = "";
+            }
+            const handleInput = authForm.querySelector<HTMLInputElement>(
+                "#bskyHandle",
+            );
+            const handle = handleInput?.value?.trim().replace(/^@/, "");
+            if (!handle) {
+                if (authError) {
+                    authError.textContent = "Enter your Bluesky handle.";
+                }
+                return;
+            }
+            if (signInButton) {
+                signInButton.setAttribute("disabled", "true");
+            }
+            try {
+                await signIn(handle);
+            } catch (error) {
+                if (authError) {
+                    authError.textContent = "Sign in failed. Please try again.";
+                }
+                if (signInButton) {
+                    signInButton.removeAttribute("disabled");
+                }
+            }
+        };
+
+        if (signInButton) {
+            signInButton.addEventListener("click", () => {
+                attemptSignIn();
+            });
+        }
+
+        if (authForm) {
+            authForm.addEventListener("keydown", (event) => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    attemptSignIn();
+                }
+            });
+        }
+
+        if (signOutButton) {
+            signOutButton.addEventListener("click", async () => {
+                signOutButton.setAttribute("disabled", "true");
+                try {
+                    await logout(getAccountCookie());
+                } finally {
+                    window.location.reload();
+                }
+            });
+        }
     </script>
 </BaseLayout>

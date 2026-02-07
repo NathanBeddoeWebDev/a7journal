@@ -258,6 +258,109 @@ textarea:focus {
     color: var(--ink-soft);
 }
 
+.auth-panel {
+    margin-top: 0.3rem;
+    display: grid;
+    gap: 0.4rem;
+}
+
+.auth-form {
+    display: grid;
+    gap: 0.35rem;
+    text-align: left;
+}
+
+.auth-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+}
+
+.auth-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.6rem;
+    align-items: center;
+}
+
+.auth-input {
+    border: 1px solid rgba(120, 84, 58, 0.35);
+    background: rgba(255, 255, 255, 0.75);
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+    font-family: var(--serif);
+    font-size: 0.85rem;
+    color: var(--ink);
+}
+
+.auth-input:focus {
+    outline: none;
+    border-color: rgba(179, 86, 42, 0.6);
+    box-shadow: 0 0 0 3px rgba(179, 86, 42, 0.12);
+}
+
+.auth-btn {
+    border: 1px solid rgba(120, 84, 58, 0.45);
+    background: rgba(179, 86, 42, 0.12);
+    padding: 0.35rem 0.95rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.auth-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 14px rgba(94, 64, 39, 0.18);
+}
+
+.auth-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.auth-btn--ghost {
+    background: transparent;
+}
+
+.auth-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    text-align: left;
+}
+
+.auth-meta {
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+}
+
+.auth-error {
+    margin: 0;
+    min-height: 1rem;
+    font-size: 0.75rem;
+    color: #8b2b12;
+}
+
+.auth-complete {
+    width: min(420px, 90vw);
+    background: linear-gradient(
+        160deg,
+        rgba(255, 250, 244, 0.92),
+        rgba(235, 220, 202, 0.92)
+    );
+    border-radius: 20px;
+    padding: 1.6rem;
+    box-shadow: var(--shadow);
+    text-align: center;
+}
+
 .save-btn {
     border: 1px solid rgba(120, 84, 58, 0.4);
     background: rgba(247, 233, 217, 0.9);
@@ -496,6 +599,10 @@ textarea:focus {
 
     .archive {
         padding: 1.8rem;
+    }
+
+    .auth-row {
+        grid-template-columns: 1fr;
     }
 
     .archive-header {

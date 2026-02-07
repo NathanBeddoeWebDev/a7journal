@@ -1,16 +1,28 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import { getEntry, getEntryNeighbors } from "../../lib/db.js";
+import {
+    getEntry,
+    getEntryNeighbors,
+    migrateEntries,
+} from "../../lib/db.js";
 
 export const prerender = false;
 
-const sessionId = Astro.cookies.get("a7_session")?.value ?? "";
+const accountDid = Astro.cookies.get("a7_account")?.value ?? "";
+const legacySessionId = Astro.cookies.get("a7_session")?.value ?? "";
+
+if (accountDid && legacySessionId) {
+    migrateEntries(legacySessionId, accountDid);
+    Astro.cookies.delete("a7_session", { path: "/" });
+}
+
+const ownerId = accountDid || legacySessionId;
 const entryId = String(Astro.params.id ?? "").trim();
 const entry =
-    sessionId && entryId
-        ? getEntry(sessionId, entryId)
+    ownerId && entryId
+        ? getEntry(ownerId, entryId)
         : null;
-const neighbors = entry ? getEntryNeighbors(sessionId, entryId) : null;
+const neighbors = entry ? getEntryNeighbors(ownerId, entryId) : null;
 
 const formatDate = (value) =>
     new Intl.DateTimeFormat("en-GB", {
@@ -66,9 +78,7 @@ const formatDate = (value) =>
                     </nav>
                 </div>
             ) : (
-                <p class="empty-state">
-                    Entry not found for this session.
-                </p>
+                <p class="empty-state">Entry not found.</p>
             )}
         </section>
     </div>

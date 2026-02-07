@@ -12,7 +12,8 @@
   "dependencies": {
     "@astrojs/node": "^9.1.0",
     "astro": "^5.17.1",
-    "better-sqlite3": "^12.6.2"
+    "better-sqlite3": "^12.6.2",
+    "@atproto/oauth-client-browser": "^0.3.39"
   },
   "devDependencies": {
     "oxfmt": "^0.28.0",
